@@ -104,7 +104,7 @@ class MongoDBPipeline(BaseItemExporter):
         # Set up the database
         self.database = connection[self.config['database']]
         self.collections = {'default': self.database[self.config['collection']]}
-        self.collection_name, self.collection = self.get_collection(spider.name)
+        self.config['collection'], self.collection = self.get_collection(spider.name)
         self.logger.info(u'Connected to MongoDB {0}, using "{1}/{2}"'.format(
             self.config['uri'],
             self.config['database'],
@@ -136,31 +136,6 @@ class MongoDBPipeline(BaseItemExporter):
 
     def configure(self, spider):
         """ Configure the MongoDB connection """
-        # Handle deprecated configuration
-        if not not_set(self.settings['MONGODB_HOST']):
-            self.logger.warning(
-                u'DeprecationWarning: MONGODB_HOST is deprecated',
-            )
-            mongodb_host = self.settings['MONGODB_HOST']
-
-            if not not_set(self.settings['MONGODB_PORT']):
-                self.logger.warning(
-                    u'DeprecationWarning: MONGODB_PORT is deprecated',
-                )
-                self.config['uri'] = 'mongodb://{0}:{1:i}'.format(
-                    mongodb_host,
-                    self.settings['MONGODB_PORT'])
-            else:
-                self.config['uri'] = 'mongodb://{0}:27017'.format(mongodb_host)
-
-        if not not_set(self.settings['MONGODB_REPLICA_SET']):
-            if not not_set(self.settings['MONGODB_REPLICA_SET_HOSTS']):
-                self.logger.warning(
-                    u'DeprecationWarning: '
-                    u'MONGODB_REPLICA_SET_HOSTS is deprecated'
-                )
-                self.config['uri'] = 'mongodb://{0}'.format(
-                    self.settings['MONGODB_REPLICA_SET_HOSTS'])
 
         # Set all regular options
         options = [
@@ -177,11 +152,13 @@ class MongoDBPipeline(BaseItemExporter):
             ('stop_on_duplicate', 'MONGODB_STOP_ON_DUPLICATE')
         ]
 
-        if not not_set(self.settings['MONGODB_UNIQUE_KEY']):
-            if isinstance(self.settings['MONGODB_UNIQUE_KEY'], dict):
-                self.config['unique_key'] = self.settings['MONGODB_UNIQUE_KEY'].get(spider.name, None)
+        MONGODB_UNIQUE_KEY = self.settings.get('MONGODB_UNIQUE_KEY', '')
+        if not not_set(MONGODB_UNIQUE_KEY):
+            if isinstance(MONGODB_UNIQUE_KEY, dict):
+                self.config['unique_key'] = MONGODB_UNIQUE_KEY.get(spider.name, None)
             else:
-                self.config['unique_key'] = self.settings['MONGODB_UNIQUE_KEY']
+                self.config['unique_key'] = MONGODB_UNIQUE_KEY
+            self.logger.debug('config["unique_key"] value is {}'.format(self.config['unique_key']))
 
         for key, setting in options:
             if not not_set(self.settings[setting]):
