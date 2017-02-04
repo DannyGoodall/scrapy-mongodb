@@ -104,6 +104,7 @@ class MongoDBPipeline(BaseItemExporter):
         # Set up the database
         self.database = connection[self.config['database']]
         self.collections = {'default': self.database[self.config['collection']]}
+        self.collection_name, self.collection = self.get_collection(spider.name)
         self.logger.info(u'Connected to MongoDB {0}, using "{1}/{2}"'.format(
             self.config['uri'],
             self.config['database'],
@@ -269,7 +270,7 @@ class MongoDBPipeline(BaseItemExporter):
             if self.config['append_timestamp']:
                 item['scrapy-mongodb'] = {'ts': datetime.datetime.utcnow()}
 
-        collection_name, collection = self.get_collection(spider.name)
+        #collection_name, collection = self.get_collection(spider.name)
 
         if self.config['unique_key'] is None:
             try:
