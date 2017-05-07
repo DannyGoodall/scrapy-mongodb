@@ -73,6 +73,10 @@ class MongoDBPipeline(BaseItemExporter):
         # Duplicate key occurence count
         self.duplicate_key_count = 0
 
+    def __init__(self, **kwargs):
+        super(MongoDBPipeline, self).__init__(**kwargs)
+        self.logger = logging.getLogger('scrapy')
+
     def load_spider(self, spider):
         self.crawler = spider.crawler
         self.settings = spider.settings
@@ -136,6 +140,31 @@ class MongoDBPipeline(BaseItemExporter):
 
     def configure(self, spider):
         """ Configure the MongoDB connection """
+        # Handle deprecated configuration
+        if not not_set(self.settings['MONGODB_HOST']):
+            self.logger.warning(
+                u'DeprecationWarning: MONGODB_HOST is deprecated',
+            )
+            mongodb_host = self.settings['MONGODB_HOST']
+
+            if not not_set(self.settings['MONGODB_PORT']):
+                self.logger.warning(
+                    u'DeprecationWarning: MONGODB_PORT is deprecated',
+                )
+                self.config['uri'] = 'mongodb://{0}:{1:i}'.format(
+                    mongodb_host,
+                    self.settings['MONGODB_PORT'])
+            else:
+                self.config['uri'] = 'mongodb://{0}:27017'.format(mongodb_host)
+
+        if not not_set(self.settings['MONGODB_REPLICA_SET']):
+            if not not_set(self.settings['MONGODB_REPLICA_SET_HOSTS']):
+                self.logger.warning(
+                    u'DeprecationWarning: '
+                    u'MONGODB_REPLICA_SET_HOSTS is deprecated'
+                )
+                self.config['uri'] = 'mongodb://{0}'.format(
+                    self.settings['MONGODB_REPLICA_SET_HOSTS'])
 
         # Set all regular options
         options = [
